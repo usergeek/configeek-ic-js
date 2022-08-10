@@ -1,0 +1,5 @@
+const prod_registry_canisters = {
+    registry0: "a2ijm-aiaaa-aaaah-qc3za-cai",
+    registry128: "a5jpy-nqaaa-aaaah-qc3zq-cai"
+}
+export const configRegistry_canister_ids = process.env["CONFIG_REGISTRY_CANISTER_IDS"] || [prod_registry_canisters.registry0, prod_registry_canisters.registry128]
