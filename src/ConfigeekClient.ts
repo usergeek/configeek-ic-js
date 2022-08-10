@@ -58,7 +58,8 @@ export class ConfigeekClient {
 
     /**
      * Gets the value for the given key
-     * @param key
+     * @param {string} key
+     * @return {string | undefined} Value of the configuration key or `undefined` if there is no such key or configuration is not yet initialized/loaded or can't be loaded.
      */
     public getValue(key: string): string | undefined {
         try {
@@ -71,6 +72,7 @@ export class ConfigeekClient {
 
     /**
      * Gets all config
+     * @return {Record<string, string> | undefined} Configuration or `undefined` if configuration is not yet initialized.
      */
     public getAll = (): Record<string, string> | undefined => {
         try {

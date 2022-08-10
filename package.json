@@ -1,6 +1,6 @@
 {
   "name": "configeek-ic-js",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Configeek Javascript SDK for Internet Computer",
   "main": "./lib/es5/index.js",
   "author": "Usergeek <support@usergeek.com>",

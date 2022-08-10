@@ -71,15 +71,17 @@ export type InitConfig = {
 All configuration related data stored in browser's `localStorage`
 
 #### Get all configuration
+This method returns the configuration or `undefined` if configuration is not yet initialized.
 
 ```typescript
 const allConfiguration: Record<string, string> | undefined = Configeek.getAll()
 ```
 
 #### Get value of a key
+This method returns the value of the configuration key or `undefined` if there is no such key or configuration is not yet initialized/loaded or can't be loaded.
 
 ```typescript
-const myKeyValue: sting | undefined = Configeek.getValue("myKey")
+const myKeyValue: string | undefined = Configeek.getValue("myKey")
 ```
 
 #### Periodical fetching
