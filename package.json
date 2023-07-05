@@ -1,6 +1,6 @@
 {
   "name": "configeek-ic-js",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Configeek Javascript SDK for Internet Computer",
   "main": "./lib/es5/index.js",
   "author": "Usergeek <support@usergeek.com>",
@@ -19,7 +19,7 @@
     "lib/**/*"
   ],
   "dependencies": {
-    "@dfinity/agent": "^0.9.2",
+    "@dfinity/agent": ">0.10.3",
     "assert": "2.0.0",
     "buffer": "6.0.3",
     "html-webpack-plugin": "5.3.1",
