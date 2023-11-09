@@ -36,6 +36,7 @@ export class Controller {
     public getDictionary = () => this.dictionary
 
     public fetch = async (): Promise<FetchResult | undefined> => {
+        const apiKey = this.config.apiKey;
         try {
             this.askForConfigStoreApi()
             const configStoreApiResult: ConfigStoreApiResult = await this.configStoreApiPromise;
@@ -47,8 +48,8 @@ export class Controller {
                     updateId: updateId,
                     actorFactory: this.actorFactory,
                 };
-                const result: FetchResponse | undefined = await this.fetcher.fetch(fetchParameters)
-                log("Controller.fetch: result", result);
+                const result: FetchResponse | undefined = await this.fetcher.fetch(fetchParameters, apiKey)
+                log(apiKey, "Controller.fetch: result", result);
                 if (!this.destroyed) {
                     if (result) {
                         if (result.status === "error") {
@@ -57,7 +58,7 @@ export class Controller {
                                 const isConfigurationEmptyState = updateId === 0;
                                 if (isConfigurationEmptyState) {
                                     //will try to fetch configuration
-                                    warn("Controller.fetch: error: invalidate - will retry to fetch configuration");
+                                    warn(apiKey, "Controller.fetch: error: invalidate - will retry to fetch configuration");
                                     await delayPromise(1000)
                                     return {
                                         continuationHint: true
@@ -65,12 +66,12 @@ export class Controller {
                                 }
                             } else if (result.reason === "wrongToken") {
                                 //destroy api
-                                warn("Controller.fetch: error: wrongToken - destroy api")
+                                warn(apiKey, "Controller.fetch: error: wrongToken - destroy api")
                                 this.configStoreApiPromise = undefined
                             } else if (result.reason === "outdatedReplica") {
                                 //outdatedReplica means that replica has updateId less than SDK sent to it.
                                 //do nothing - we hope that next fetch will be processed by up-to-date replica. Outdated replica hopefully soon will sync its state.
-                                warn("Controller.fetch: error: outdatedReplica - do nothing")
+                                warn(apiKey, "Controller.fetch: error: outdatedReplica - do nothing")
                             }
                         } else {
                             const updateId = result.updateId;
@@ -105,14 +106,14 @@ export class Controller {
                         }
                     }
                 } else {
-                    warn("Controller.fetch: result skipped - destroyed")
+                    warn(apiKey, "Controller.fetch: result skipped - destroyed")
                 }
             } else {
-                warn("Controller.fetch: result failed - destroy api")
+                warn(apiKey, "Controller.fetch: result failed - destroy api")
                 this.configStoreApiPromise = undefined
             }
         } catch (e) {
-            warn("Controller.fetch: caught error", e);
+            warn(apiKey, "Controller.fetch: caught error", e);
             //nop
         }
     }
@@ -123,9 +124,9 @@ export class Controller {
             this.storage.destroy()
         }
         if (this.apiService) {
-            this.apiService.destroy()
+            this.apiService.destroy(this.config.apiKey)
         }
-        warn("Controller: destroyed")
+        warn(this.config.apiKey, "Controller: destroyed")
     }
 
     ////////////////////////////////////////////////
@@ -189,10 +190,10 @@ export class Controller {
                 this.apiService = new APIService(this.config.apiKey);
             }
             const configStoreApiResult: ConfigStoreApiResult = await this.apiService.getConfigStoreApi(apiParameters)
-            log("ConfigeekClient.getConfigStoreApi: result", configStoreApiResult);
+            log(this.config.apiKey, "ConfigeekClient.getConfigStoreApi: result", configStoreApiResult);
             return configStoreApiResult
         } catch (e) {
-            warn("ConfigeekClient.getConfigStoreApi: caught error", e)
+            warn(this.config.apiKey, "ConfigeekClient.getConfigStoreApi: caught error", e)
             return {status: "error"}
         }
     };

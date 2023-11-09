@@ -37,10 +37,11 @@ export class APIService {
     }
 
     public async getConfigStoreApi(apiParameters: ApiParameters): Promise<ConfigStoreApiResult> {
+        const {apiKey} = apiParameters;
         try {
-            log("APIService.getConfigStoreApi: start with", apiParameters);
+            log(apiKey, "APIService.getConfigStoreApi: start with", apiParameters);
             const result: ConfigRegistryResponse = await this.callConfigRegistryRecursively(apiParameters, GLOBAL_RETRIES);
-            log(`APIService.getConfigStoreApi: result`, result);
+            log(apiKey, `APIService.getConfigStoreApi: result`, result);
             if (!this.destroyed) {
                 if (isOk(result)) {
                     const apiResult: GetConfigStoreApiResult = result.ok;
@@ -51,20 +52,20 @@ export class APIService {
                     }
                 }
             } else {
-                warn("APIService.getConfigStoreApi: result skipped - destroyed")
+                warn(apiKey, "APIService.getConfigStoreApi: result skipped - destroyed")
             }
         } catch (e) {
-            warn("APIService.getConfigStoreApi: caught error", e);
+            warn(apiKey, "APIService.getConfigStoreApi: caught error", e);
         }
         return {
             status: "error"
         }
     }
 
-    public destroy = () => {
+    public destroy = (apiKey?: string) => {
         this.destroyed = true
         this.storage.destroy()
-        warn("APIService: destroyed")
+        warn(apiKey, "APIService: destroyed")
     }
 
     ////////////////////////////////////////////////
@@ -72,9 +73,10 @@ export class APIService {
     ////////////////////////////////////////////////
 
     private callConfigRegistryRecursively = async (apiParameters: ApiParameters, retriesLeft: number): Promise<ConfigRegistryResponse> => {
-        log(`APIService.callConfigRegistryRecursively: start with`, {retriesLeft});
+        const {apiKey} = apiParameters
+        log(apiKey, `APIService.callConfigRegistryRecursively: start with`, {retriesLeft});
         const configRegistryResponse: ConfigRegistryResponse = await this.getResult(apiParameters, REGISTRY_REDIRECT_RETRIES);
-        log(`APIService.callConfigRegistryRecursively: result`, configRegistryResponse);
+        log(apiKey, `APIService.callConfigRegistryRecursively: result`, configRegistryResponse);
         if (isOk<ConfigRegistryResponse>(configRegistryResponse)) {
             return configRegistryResponse
         } else if (isErr<ConfigRegistryResponse>(configRegistryResponse)) {
@@ -82,27 +84,27 @@ export class APIService {
                 case "changeTopology": {
                     if (!this.destroyed) {
                         const timeout = getTimeout(GLOBAL_RETRIES - retriesLeft, timeoutBetweenRetriesSec)
-                        log(`APIService.callConfigRegistryRecursively: changeTopology : sleep for ${timeout}ms`);
+                        log(apiKey, `APIService.callConfigRegistryRecursively: changeTopology : sleep for ${timeout}ms`);
                         await delayPromise(timeout)
                         if (!this.destroyed) {
                             return this.callConfigRegistryRecursively(apiParameters, retriesLeft - 1)
                         }
                     }
-                    warn("APIService.callConfigRegistryRecursively: changeTopology : skipped - destroyed")
+                    warn(apiKey, "APIService.callConfigRegistryRecursively: changeTopology : skipped - destroyed")
                     break
                 }
                 case "retry": {
                     if (!this.destroyed) {
                         if (retriesLeft > 0) {
                             const timeout = getTimeout(GLOBAL_RETRIES - retriesLeft, timeoutBetweenRetriesSec)
-                            log("sleep for", timeout, "ms");
+                            log(apiKey, "sleep for", timeout, "ms");
                             await delayPromise(timeout)
                             return this.callConfigRegistryRecursively(apiParameters, retriesLeft - 1)
                         } else {
-                            warn("APIService.callConfigRegistryRecursively: retry : skipped - no more retries")
+                            warn(apiKey, "APIService.callConfigRegistryRecursively: retry : skipped - no more retries")
                         }
                     } else {
-                        warn("APIService.callConfigRegistryRecursively: retry : skipped - destroyed")
+                        warn(apiKey, "APIService.callConfigRegistryRecursively: retry : skipped - destroyed")
                     }
                     break
                 }
@@ -123,7 +125,7 @@ export class APIService {
             warn("APIService.getResult: no registry canisters - exit");
             return createErrFatal()
         }
-        log("APIService.getResult: using", {canisterIds: canisterIds, currentSessionTopologyId: currentSessionTopologyId});
+        log(apiParameters.apiKey, "APIService.getResult: using", {canisterIds: canisterIds, currentSessionTopologyId: currentSessionTopologyId});
         const canisterId: string | undefined = APIService.getCanisterId(canisterIds);
         if (canisterId) {
             return this.callActorRecursively(canisterId, apiParameters, retriesLeft, false)
@@ -132,14 +134,15 @@ export class APIService {
     }
 
     private callActorRecursively = async (canisterId: string, apiParameters: ApiParameters, retriesLeft: number, useActorMethodWithConsensus: boolean): Promise<ConfigRegistryResponse> => {
-        log("CoordinatorApi.callActorRecursively: start with", {currentSessionTopologyId, canisterId, useActorMethodWithConsensus, retriesLeft});
+        const {apiKey} = apiParameters
+        log(apiKey, "CoordinatorApi.callActorRecursively: start with", {currentSessionTopologyId, canisterId, useActorMethodWithConsensus, retriesLeft});
         if (canisterId) {
             let result: GetRegistryValueResult | GetRegistryValueWithConsensusResult;
             try {
                 result = await this.callActor(canisterId, apiParameters, useActorMethodWithConsensus);
-                log(`APIService.callActorRecursively: result`, result);
+                log(apiKey, `APIService.callActorRecursively: result`, result);
             } catch (e) {
-                warn("APIService.callActorRecursively: caught error", e);
+                warn(apiKey, "APIService.callActorRecursively: caught error", e);
                 return createErrRetry()
             }
             if (isOk(result)) {
@@ -155,7 +158,7 @@ export class APIService {
                 for (let i = 0; i < newPrincipals.length; i++) {
                     newCanisterIds.push(newPrincipals[i].toText())
                 }
-                log("APIService.callActorRecursively: changeTopology : new canisterIds from new topology", newCanisterIds);
+                log(apiKey, "APIService.callActorRecursively: changeTopology : new canisterIds from new topology", newCanisterIds);
                 if (newCanisterIds.length > 0) {
                     currentSessionTopologyId = newTopologyId
                     this.storage.setTopologyId(newTopologyId)
@@ -168,10 +171,10 @@ export class APIService {
                         const principalToRedirectTo: Principal = result.redirect;
                         return this.callActorRecursively(principalToRedirectTo.toText(), apiParameters, retriesLeft - 1, false)
                     } else {
-                        warn("APIService.callActorRecursively: redirect : skip - no more retries")
+                        warn(apiKey, "APIService.callActorRecursively: redirect : skip - no more retries")
                     }
                 } else {
-                    warn("APIService.callActorRecursively: redirect : skip - destroyed")
+                    warn(apiKey, "APIService.callActorRecursively: redirect : skip - destroyed")
                 }
                 return createErrFatal()
             } else if (hasOwnProperty(result, "retryWithConsensusRequest")) {
@@ -179,10 +182,10 @@ export class APIService {
                     if (retriesLeft > 0) {
                         return this.callActorRecursively(canisterId, apiParameters, retriesLeft - 1, true)
                     } else {
-                        warn("APIService.callActorRecursively: retryWithConsensusRequest : skip - no more retries")
+                        warn(apiKey, "APIService.callActorRecursively: retryWithConsensusRequest : skip - no more retries")
                     }
                 } else {
-                    warn("APIService.callActorRecursively: retryWithConsensusRequest : skip - destroyed")
+                    warn(apiKey, "APIService.callActorRecursively: retryWithConsensusRequest : skip - destroyed")
                 }
             }
             //"temporaryUnavailable"/"error" case

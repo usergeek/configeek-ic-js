@@ -40,6 +40,11 @@ export class ConfigeekClient {
     private fetchConfigPromiseInProgress: Promise<FetchResult | undefined>
     private fetchTimeoutHandle: number
 
+    /**
+     * Creates a new instance of
+     */
+    public newInstance = () => new ConfigeekClient()
+
     public init = (config: InitConfig) => {
         this.destroy()
         this.config = config;
@@ -48,7 +53,7 @@ export class ConfigeekClient {
         this.controller = new Controller(config)
 
         try {
-            log(`Configeek: initialized with config: ${JSON.stringify(config)}`);
+            log(this.config?.apiKey, `Configeek: initialized with config: ${JSON.stringify(config)}`);
         } catch (e) {
         }
 
@@ -66,7 +71,7 @@ export class ConfigeekClient {
             this.assertInitialization()
             return this.controller.getDictionary()[key];
         } catch (e) {
-            warn("ConfigeekClient.getValue", e)
+            warn(this.config?.apiKey, "ConfigeekClient.getValue", e)
         }
     }
 
@@ -81,7 +86,7 @@ export class ConfigeekClient {
                 ...this.controller.getDictionary()
             }
         } catch (e) {
-            warn("ConfigeekClient.getAll", e)
+            warn(this.config?.apiKey, "ConfigeekClient.getAll", e)
         }
     }
 
@@ -98,7 +103,7 @@ export class ConfigeekClient {
                     this.fetchConfigPromiseInProgress = this.fetchConfigPromiseInProgress.then(this.controller.fetch)
                 }
                 const result: FetchResult | undefined = await this.fetchConfigPromiseInProgress
-                log("ConfigeekClient.fetchConfig: result", result);
+                log(this.config?.apiKey, "ConfigeekClient.fetchConfig: result", result);
                 if (result) {
                     const updatedKeys: Array<string> | undefined = result.updatedKeys;
                     if (updatedKeys?.length > 0 && typeof this.config.onConfigurationUpdatedCallback == "function") {
@@ -107,7 +112,7 @@ export class ConfigeekClient {
                         })
                     }
                     if (result.continuationHint === true) {
-                        log("ConfigeekClient.fetchConfig: will fetch again");
+                        log(this.config?.apiKey, "ConfigeekClient.fetchConfig: will fetch again");
                         this.fetchConfig()
                         return
                     }
@@ -117,7 +122,7 @@ export class ConfigeekClient {
                     this.scheduleFetching()
                 }
             } catch (e) {
-                warn("ConfigeekClient.fetchConfig", e)
+                warn(this.config?.apiKey, "ConfigeekClient.fetchConfig", e)
             }
         })()
     }
@@ -128,7 +133,7 @@ export class ConfigeekClient {
             this.config.periodicFetchingEnabled = true
             this.scheduleFetching()
         } catch (e) {
-            warn("ConfigeekClient.startPeriodicFetching", e)
+            warn(this.config?.apiKey, "ConfigeekClient.startPeriodicFetching", e)
         }
     }
 
@@ -138,7 +143,7 @@ export class ConfigeekClient {
             this.config.periodicFetchingEnabled = false
             window.clearTimeout(this.fetchTimeoutHandle)
         } catch (e) {
-            warn("ConfigeekClient.stopPeriodicFetching", e)
+            warn(this.config?.apiKey, "ConfigeekClient.stopPeriodicFetching", e)
         }
     }
 
@@ -147,7 +152,7 @@ export class ConfigeekClient {
             this.assertInitialization()
             return this.config.periodicFetchingEnabled
         } catch (e) {
-            warn("ConfigeekClient.isPeriodicFetchingEnabled", e)
+            warn(this.config?.apiKey, "ConfigeekClient.isPeriodicFetchingEnabled", e)
             return false
         }
     }

@@ -20,7 +20,7 @@ export declare class APIService {
     private destroyed;
     constructor(apiKey: string);
     getConfigStoreApi(apiParameters: ApiParameters): Promise<ConfigStoreApiResult>;
-    destroy: () => void;
+    destroy: (apiKey?: string) => void;
     private callConfigRegistryRecursively;
     private getResult;
     private callActorRecursively;

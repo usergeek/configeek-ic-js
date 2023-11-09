@@ -27,9 +27,9 @@ export type FetchResponse = {
 
 export class Fetcher {
 
-    public fetch = async (parameters: FetchParameters): Promise<FetchResponse | undefined> => {
+    public fetch = async (parameters: FetchParameters, apiKey: string): Promise<FetchResponse | undefined> => {
         try {
-            log("Fetcher.fetch: start with", parameters);
+            log(apiKey, "Fetcher.fetch: start with", parameters);
             const canisterId = parameters.canisterPrincipal;
             const configStoreActor = parameters.actorFactory.createConfigStoreActor(canisterId);
             const context: GetConfigRecursivelyContext = {
@@ -38,8 +38,8 @@ export class Fetcher {
                 accumulator: [],
                 continuation: undefined
             };
-            const result: GetConfigRecursivelyResult = await getConfigRecursively(configStoreActor, context)
-            log("Fetcher.fetch: getConfigRecursively result", result);
+            const result: GetConfigRecursivelyResult = await getConfigRecursively(configStoreActor, context, apiKey)
+            log(apiKey, "Fetcher.fetch: getConfigRecursively result", result);
             switch (result.status) {
                 case "success": {
                     const resultData: GetConfigRecursivelyResultData = result.result;
@@ -64,7 +64,7 @@ export class Fetcher {
                     }
                 }
                 case "error": {
-                    warn("Fetcher.fetch: getConfigRecursively error", result.reason);
+                    warn(apiKey, "Fetcher.fetch: getConfigRecursively error", result.reason);
                     return {
                         status: "error",
                         reason: result.reason
@@ -72,12 +72,12 @@ export class Fetcher {
                 }
                 case "unknownError": {
                     //nop
-                    warn("Fetcher.fetch: getConfigRecursively unknownError");
+                    warn(apiKey, "Fetcher.fetch: getConfigRecursively unknownError");
                     return undefined
                 }
             }
         } catch (error) {
-            warn("Fetcher.fetch: caught error", error);
+            warn(apiKey, "Fetcher.fetch: caught error", error);
             throw error
         }
     }
@@ -103,13 +103,13 @@ type GetConfigRecursivelyContext = {
     continuation: PartialContinuation | undefined
 }
 
-const getConfigRecursively = async (actor: ConfigStoreActor, context: GetConfigRecursivelyContext): Promise<GetConfigRecursivelyResult> => {
-    log("Fetcher.getConfigRecursively: start with", context);
+const getConfigRecursively = async (actor: ConfigStoreActor, context: GetConfigRecursivelyContext, apiKey: string): Promise<GetConfigRecursivelyResult> => {
+    log(apiKey, "Fetcher.getConfigRecursively: start with", context);
     if (context.continuation) {
         const result: GetConfigFullPartialResult = await actor.getConfigFullContinuation(context.accessToken, context.continuation)
-        log("Fetcher.getConfigRecursively: getConfigFullContinuation result", result);
+        log(apiKey, "Fetcher.getConfigRecursively: getConfigFullContinuation result", result);
         if (isOk(result)) {
-            return await processFullPartial(actor, context, result.ok)
+            return await processFullPartial(actor, context, result.ok, apiKey)
         } else if (isErr(result)) {
             const validationErrorName = getICFirstKey(result.err) as GetConfigErrorType
             return {
@@ -118,7 +118,7 @@ const getConfigRecursively = async (actor: ConfigStoreActor, context: GetConfigR
         }
     } else {
         const result: GetConfigResult = await actor.getConfig(context.accessToken, context.updateId)
-        log("Fetcher.getConfigRecursively: getConfig result", result);
+        log(apiKey, "Fetcher.getConfigRecursively: getConfig result", result);
         if (isOk(result)) {
             const configRequestResult: ConfigRequestResult = result.ok
             const updateId: number = configRequestResult.lastRegisteredUpdateId
@@ -146,7 +146,7 @@ const getConfigRecursively = async (actor: ConfigStoreActor, context: GetConfigR
             } else if (hasOwnProperty(configVariant, "fullPartial")) {
                 const fullPartial: ConfigFullPartial = configVariant.fullPartial;
                 const newContext = {...context, updateId: updateId};
-                return await processFullPartial(actor, newContext, fullPartial)
+                return await processFullPartial(actor, newContext, fullPartial, apiKey)
             } else if (hasOwnProperty(configVariant, "deltaPartial")) {
                 const deltaPartial: Array<ConfigDeltaPair> = configVariant.deltaPartial;
                 return {
@@ -170,7 +170,7 @@ const getConfigRecursively = async (actor: ConfigStoreActor, context: GetConfigR
     }
 }
 
-const processFullPartial = async (actor: ConfigStoreActor, context: GetConfigRecursivelyContext, fullPartial: ConfigFullPartial): Promise<GetConfigRecursivelyResult> => {
+const processFullPartial = async (actor: ConfigStoreActor, context: GetConfigRecursivelyContext, fullPartial: ConfigFullPartial, apiKey: string): Promise<GetConfigRecursivelyResult> => {
     const continuation: PartialContinuation | undefined = getICOptional(fullPartial.continuation);
     const newAccumulator: Array<ConfigPair> = [
         ...context.accumulator,
@@ -182,7 +182,7 @@ const processFullPartial = async (actor: ConfigStoreActor, context: GetConfigRec
             continuation: continuation,
             accumulator: newAccumulator
         };
-        return await getConfigRecursively(actor, newContext)
+        return await getConfigRecursively(actor, newContext, apiKey)
     } else {
         return {
             status: "success",

@@ -32,6 +32,10 @@ export declare class ConfigeekClient {
     private controller;
     private fetchConfigPromiseInProgress;
     private fetchTimeoutHandle;
+    /**
+     * Creates a new instance of
+     */
+    newInstance: () => ConfigeekClient;
     init: (config: InitConfig) => void;
     /**
      * Gets the value for the given key

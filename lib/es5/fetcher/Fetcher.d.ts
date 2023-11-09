@@ -21,7 +21,7 @@ export declare type FetchResponse = {
     reason: GetConfigErrorType;
 };
 export declare class Fetcher {
-    fetch: (parameters: FetchParameters) => Promise<FetchResponse | undefined>;
+    fetch: (parameters: FetchParameters, apiKey: string) => Promise<FetchResponse | undefined>;
 }
 export declare type ConfigStatus = "full" | "delta" | "deltaPartial";
 declare type GetConfigRecursivelyResultDataCommon<T extends ConfigStatus> = {
